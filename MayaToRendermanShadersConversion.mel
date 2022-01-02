@@ -229,7 +229,7 @@ for ($imt=0;$imt<size($sel);$imt=$imt+2)
 	
 	
 	
-	//BLINN
+//BLINN
 	if ($sel[$imt+1] == "blinn")
 	{	
 		print ("\n");
