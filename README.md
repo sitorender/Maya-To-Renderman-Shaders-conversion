@@ -11,7 +11,7 @@ Select the shaders to convert and run the script.
 
 INSTALL:
 Open/copypaste the script in the maya script editor.
-Select all the script (ctrl+A) and run the script (ctrl+RETURN)
+Select all the script (ctrl+A) and run the script (ctrl+Return)
 OR
 Select all the script (ctrl+A), drag it with middle mouse button on your Custom shelf.
 
