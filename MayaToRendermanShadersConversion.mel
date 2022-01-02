@@ -1,0 +1,356 @@
+/*
+Original script by Mahmoud Youssef https://www.highend3d.com/maya/script/maya-materials-to-arnold-materials-for-maya
+MIT License (MIT)
+Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files (the "Software"), to deal in the Software without restriction, including without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software, and to permit persons to whom the Software is furnished to do so, subject to the following conditions:
+The above copyright notice and this permission notice shall be included in all copies or substantial portions of the Software.
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+*/
+
+
+
+//PRENDO IL NOME DELLA SELEZIONE E IL TIPO  phong1 phong
+
+
+string $sel[] = `ls -sl -st`;
+for ($imt=0;$imt<size($sel);$imt=$imt+2)
+{
+	// $imt=$imt+2 takes every second string and runs the script
+	// $sel[$imt]=object
+	// $sel[$imt+1]=objectType
+
+
+	//SHADERS PARAMETERS to switch 
+	string $phongParam[] = {".color", ".specularColor", ".transparency", ".matteOpacity", ".normalCamera", ".reflectedColor", ".cosinePower"};
+	string $lambParam[] = {".color", ".ambientColor", ".transparency", ".matteOpacity", ".normalCamera"};
+	string $blinnParam[] = {".color", ".specularColor", ".transparency", ".matteOpacity", ".normalCamera", ".reflectedColor", ".eccentricity"};
+	string $PxrSurParam[] = {".diffuseColor", ".specularEdgeColor", ".refractionColor", ".presence", ".bumpNormal", ".roughSpecularEdgeColor", ".specularRoughness", ".roughSpecularRoughness"};
+	
+	
+//PHONG
+	if ($sel[$imt+1] == "phong")
+	{	
+		print ("\n");
+		print ("running phong conversion on " + $sel[$imt] + " hold on");
+		
+	
+	//NEW RENDERMAN MATERIAL	
+	$newMtl=`shadingNode -as -n ("PxrSrf_"+$sel[$imt]) PxrSurface`;
+		
+	
+	
+		//COLOR
+	string $connColor=`connectionInfo -sfd ($sel[$imt] + $phongParam[0])`;
+	if ($connColor=="")
+		{
+			float $tmp[]=`getAttr ($sel[$imt] + $phongParam[0])`;
+			setAttr ($newMtl + $PxrSurParam[0]) -type double3 $tmp[0] $tmp[1] $tmp[2];
+		}
+	else
+		{
+		connectAttr -f $connColor ($newMtl + $PxrSurParam[0]);
+		}
+	
+		//SPECULAR
+	setAttr ($newMtl+".specularFresnelMode") 1;
+	string $connSpec=`connectionInfo -sfd ($sel[$imt] + $phongParam[1])`;
+	if ($connSpec=="")
+		{
+			float $tmp[]=`getAttr ($sel[$imt] + $phongParam[1])`;
+			setAttr ($newMtl + $PxrSurParam[1]) -type double3 $tmp[0] $tmp[1] $tmp[2];
+		}
+	else
+		{
+		connectAttr -f $connSpec ($newMtl + $PxrSurParam[1]);
+		}
+		
+		//TRANSPARENCY
+	string $connTran=`connectionInfo -sfd ($sel[$imt] + $phongParam[2])`;
+	if ($connTran=="")
+		{
+			float $tmp[]=`getAttr ($sel[$imt] + $phongParam[2])`;
+			setAttr ($newMtl + $PxrSurParam[2]) -type double3 $tmp[0] $tmp[1] $tmp[2];
+		}
+	else
+		{
+		connectAttr -f $connTran ($newMtl + $PxrSurParam[2]);
+		}
+		
+		//MATTEOPACITY
+	string $connOpac=`connectionInfo -sfd ($sel[$imt] + $phongParam[3])`;
+	if ($connOpac=="")
+		{
+			float $opc=`getAttr ($sel[$imt] + $phongParam[3])`;
+			setAttr ($newMtl + $PxrSurParam[3]) $opc;
+		}
+	else
+		{
+		connectAttr -f $connOpac ($newMtl + $PxrSurParam[3]);
+		}	
+		
+		//BUMP
+	string $connBump=`connectionInfo -sfd ($sel[$imt] + $phongParam[4])`;
+	if ($connBump=="")
+		{
+			float $tmp[]=`getAttr ($sel[$imt] + $phongParam[4])`;
+			setAttr ($newMtl + $PxrSurParam[4]) -type double3 $tmp[0] $tmp[1] $tmp[2];
+		}
+	else
+		{
+		connectAttr -f $connBump ($newMtl + $PxrSurParam[4]);
+		}		
+		
+			//REFLECTEDCOLOR
+	setAttr ($newMtl+".roughSpecularFresnelMode") 1;
+	string $connSpec=`connectionInfo -sfd ($sel[$imt] + $phongParam[5])`;
+	if ($connSpec=="")
+		{
+			float $tmp[]=`getAttr ($sel[$imt] + $phongParam[5])`;
+			setAttr ($newMtl + $PxrSurParam[5]) -type double3 $tmp[0] $tmp[1] $tmp[2];
+		}
+	else
+		{
+		connectAttr -f $connSpec ($newMtl + $PxrSurParam[5]);
+		}
+
+		//COSINEPOWER
+	setAttr ($newMtl+".roughSpecularFresnelMode") 1;
+	string $connSpec=`connectionInfo -sfd ($sel[$imt] + $phongParam[6])`;
+	if ($connSpec=="")
+		{
+			float $ecce=`getAttr ($sel[$imt] + $phongParam[6])`;
+			float $ecceInv= 1-($ecce/100);
+			setAttr ($newMtl + $PxrSurParam[6]) $ecceInv;
+			setAttr ($newMtl + $PxrSurParam[7]) $ecceInv;
+		}
+	else
+		{
+		connectAttr -f $connSpec ($newMtl + $PxrSurParam[6]);
+		connectAttr -f $connSpec ($newMtl + $PxrSurParam[7]);
+		}	
+		
+		
+	// find the shading group and connect the new Arnold shader
+ 
+	string $SG[] = `listConnections -t shadingEngine $sel[$imt]`;
+	connectAttr -f ($newMtl +".outColor") ($SG[0] +".surfaceShader");
+    
+	// delete the original shader
+ 	delete $sel[$imt];
+		
+		
+	print ("\n");
+	print ("phong conversion on " + $sel[$imt] + "DONE");
+	}
+	
+
+	
+//LAMBERT
+	if ($sel[$imt+1] == "lambert")
+	{	
+		print ("\n");
+		print ("running lambert conversion on " + $sel[$imt] + " hold on");
+		
+	
+	//NEW RENDERMAN MATERIAL	
+	$newMtl=`shadingNode -as -n ("PxrSrf_"+$sel[$imt]) PxrSurface`;
+		
+	
+	
+		//COLOR
+	string $connColor=`connectionInfo -sfd ($sel[$imt] + $lambParam[0])`;
+	if ($connColor=="")
+		{
+			float $tmp[]=`getAttr ($sel[$imt] + $lambParam[0])`;
+			setAttr ($newMtl + $PxrSurParam[0]) -type double3 $tmp[0] $tmp[1] $tmp[2];
+		}
+	else
+		{
+		connectAttr -f $connColor ($newMtl + $PxrSurParam[0]);
+		}
+	
+		//AMBIENTCOLOR
+	setAttr ($newMtl+".specularFresnelMode") 1;
+	string $connSpec=`connectionInfo -sfd ($sel[$imt] + $lambParam[1])`;
+	if ($connSpec=="")
+		{
+			float $tmp[]=`getAttr ($sel[$imt] + $lambParam[1])`;
+			setAttr ($newMtl + $PxrSurParam[1]) -type double3 $tmp[0] $tmp[1] $tmp[2];
+		}
+	else
+		{
+		connectAttr -f $connSpec ($newMtl + $PxrSurParam[1]);
+		}
+		
+		//TRANSPARENCY
+	string $connTran=`connectionInfo -sfd ($sel[$imt] + $lambParam[2])`;
+	if ($connTran=="")
+		{
+			float $tmp[]=`getAttr ($sel[$imt] + $lambParam[2])`;
+			setAttr ($newMtl + $PxrSurParam[2]) -type double3 $tmp[0] $tmp[1] $tmp[2];
+		}
+	else
+		{
+		connectAttr -f $connTran ($newMtl + $PxrSurParam[2]);
+		}
+		
+		//MATTEOPACITY
+	string $connOpac=`connectionInfo -sfd ($sel[$imt] + $lambParam[3])`;
+	if ($connOpac=="")
+		{
+			float $opc=`getAttr ($sel[$imt] + $lambParam[3])`;
+			setAttr ($newMtl + $PxrSurParam[3]) $opc;
+		}
+	else
+		{
+		connectAttr -f $connOpac ($newMtl + $PxrSurParam[3]);
+		}	
+		
+		//BUMP
+	string $connBump=`connectionInfo -sfd ($sel[$imt] + $lambParam[4])`;
+	if ($connBump=="")
+		{
+			float $tmp[]=`getAttr ($sel[$imt] + $lambParam[4])`;
+			setAttr ($newMtl + $PxrSurParam[4]) -type double3 $tmp[0] $tmp[1] $tmp[2];
+		}
+	else
+		{
+		connectAttr -f $connBump ($newMtl + $PxrSurParam[4]);
+		}		
+		
+	
+	// find the shading group and connect the new Arnold shader
+ 
+	string $SG[] = `listConnections -t shadingEngine $sel[$imt]`;
+	connectAttr -f ($newMtl +".outColor") ($SG[0] +".surfaceShader");
+    
+	// delete the original shader
+ 	delete $sel[$imt];
+	
+	print ("\n");
+	print ("lambert conversion on " + $sel[$imt] + "DONE");
+	}	
+	
+	
+	
+	
+	
+	//BLINN
+	if ($sel[$imt+1] == "blinn")
+	{	
+		print ("\n");
+		print ("running blinn conversion on " + $sel[$imt] + " hold on");
+		
+	
+	//NEW RENDERMAN MATERIAL	
+	$newMtl=`shadingNode -as -n ("PxrSrf_"+$sel[$imt]) PxrSurface`;
+		
+	
+	
+		//COLOR
+	string $connColor=`connectionInfo -sfd ($sel[$imt] + $blinnParam[0])`;
+	if ($connColor=="")
+		{
+			float $tmp[]=`getAttr ($sel[$imt] + $blinnParam[0])`;
+			setAttr ($newMtl + $PxrSurParam[0]) -type double3 $tmp[0] $tmp[1] $tmp[2];
+		}
+	else
+		{
+		connectAttr -f $connColor ($newMtl + $PxrSurParam[0]);
+		}
+	
+		//SPECULAR
+	setAttr ($newMtl+".specularFresnelMode") 1;
+	string $connSpec=`connectionInfo -sfd ($sel[$imt] + $blinnParam[1])`;
+	if ($connSpec=="")
+		{
+			float $tmp[]=`getAttr ($sel[$imt] + $blinnParam[1])`;
+			setAttr ($newMtl + $PxrSurParam[1]) -type double3 $tmp[0] $tmp[1] $tmp[2];
+		}
+	else
+		{
+		connectAttr -f $connSpec ($newMtl + $PxrSurParam[1]);
+		}
+		
+		//TRANSPARENCY
+	string $connTran=`connectionInfo -sfd ($sel[$imt] + $blinnParam[2])`;
+	if ($connTran=="")
+		{
+			float $tmp[]=`getAttr ($sel[$imt] + $blinnParam[2])`;
+			setAttr ($newMtl + $PxrSurParam[2]) -type double3 $tmp[0] $tmp[1] $tmp[2];
+		}
+	else
+		{
+		connectAttr -f $connTran ($newMtl + $PxrSurParam[2]);
+		}
+		
+		//MATTEOPACITY
+	string $connOpac=`connectionInfo -sfd ($sel[$imt] + $blinnParam[3])`;
+	if ($connOpac=="")
+		{
+			float $opc=`getAttr ($sel[$imt] + $blinnParam[3])`;
+			setAttr ($newMtl + $PxrSurParam[3]) $opc;
+		}
+	else
+		{
+		connectAttr -f $connOpac ($newMtl + $PxrSurParam[3]);
+		}	
+		
+		//BUMP
+	string $connBump=`connectionInfo -sfd ($sel[$imt] + $blinnParam[4])`;
+	if ($connBump=="")
+		{
+			float $tmp[]=`getAttr ($sel[$imt] + $blinnParam[4])`;
+			setAttr ($newMtl + $PxrSurParam[4]) -type double3 $tmp[0] $tmp[1] $tmp[2];
+		}
+	else
+		{
+		connectAttr -f $connBump ($newMtl + $PxrSurParam[4]);
+		}
+
+		//REFLECTEDCOLOR
+	setAttr ($newMtl+".roughSpecularFresnelMode") 1;
+	string $connSpec=`connectionInfo -sfd ($sel[$imt] + $blinnParam[5])`;
+	if ($connSpec=="")
+		{
+			float $tmp[]=`getAttr ($sel[$imt] + $blinnParam[5])`;
+			setAttr ($newMtl + $PxrSurParam[5]) -type double3 $tmp[0] $tmp[1] $tmp[2];
+		}
+	else
+		{
+		connectAttr -f $connSpec ($newMtl + $PxrSurParam[5]);
+		}		
+		
+		//ECCENTRICITY
+	setAttr ($newMtl+".roughSpecularFresnelMode") 1;
+	string $connSpec=`connectionInfo -sfd ($sel[$imt] + $blinnParam[6])`;
+	if ($connSpec=="")
+		{
+			float $ecce=`getAttr ($sel[$imt] + $blinnParam[6])`;
+			setAttr ($newMtl + $PxrSurParam[6]) $ecce;
+			setAttr ($newMtl + $PxrSurParam[7]) $ecce;
+		}
+	else
+		{
+		connectAttr -f $connSpec ($newMtl + $PxrSurParam[6]);
+		}	
+		
+	
+	
+	// find the shading group and connect the new Arnold shader
+ 
+	string $SG[] = `listConnections -t shadingEngine $sel[$imt]`;
+	connectAttr -f ($newMtl +".outColor") ($SG[0] +".surfaceShader");
+    
+	// delete the original shader
+ 	delete $sel[$imt];
+		
+		
+	print ("\n");
+	print ("blinn conversion on " + $sel[$imt] + "DONE");
+	}
+	
+	
+}	
+// refresh material viewer
+toggleShaderBallPauseButton;
+toggleShaderBallPauseButton;
