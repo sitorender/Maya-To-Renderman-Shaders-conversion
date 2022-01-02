@@ -21,3 +21,6 @@ Send me issues if there's need to add more parameters conversion or to switch on
 
 TODO:
 convert shaders of selected meshes instead of selected shaders.
+
+
+Look also to this repo https://github.com/mhdmhd/MayaSceneConverter more easy customization.
